@@ -13,4 +13,14 @@ public class RegisterRequest {
     private String username;
     private String password;
     private String role;
+
+    // Поля для доктора
+    private String specialization;
+    private String phone;
+
+    // Поля для пациента
+    private String fullName;
+    private String dateOfBirth;
+    private String address;
+    private String phoneNumber;
 }

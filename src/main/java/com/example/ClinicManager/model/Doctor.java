@@ -23,4 +23,8 @@ public class Doctor {
     private String specialization;
 
     private String phone;
+
+    @OneToOne
+    @JoinColumn(name = "user_id", referencedColumnName = "id")
+    private User user;
 }

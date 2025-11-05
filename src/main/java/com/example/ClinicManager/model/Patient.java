@@ -20,9 +20,11 @@ public class Patient {
 
     private String address;
 
-    // ===== Конструкторы =====
-    public Patient() {
-    }
+    @OneToOne
+    @JoinColumn(name = "user_id", referencedColumnName = "id")
+    private User user;
+
+    public Patient() {}
 
     public Patient(Long id, String fullName, LocalDate birthDate, String phone, String address) {
         this.id = id;
@@ -32,49 +34,20 @@ public class Patient {
         this.address = address;
     }
 
-    // ===== Геттеры =====
-    public Long getId() {
-        return id;
-    }
+    public Long getId() { return id; }
+    public String getFullName() { return fullName; }
+    public LocalDate getBirthDate() { return birthDate; }
+    public String getPhone() { return phone; }
+    public String getAddress() { return address; }
+    public User getUser() { return user; }
 
-    public String getFullName() {
-        return fullName;
-    }
+    public void setId(Long id) { this.id = id; }
+    public void setFullName(String fullName) { this.fullName = fullName; }
+    public void setBirthDate(LocalDate birthDate) { this.birthDate = birthDate; }
+    public void setPhone(String phone) { this.phone = phone; }
+    public void setAddress(String address) { this.address = address; }
+    public void setUser(User user) { this.user = user; }
 
-    public LocalDate getBirthDate() {
-        return birthDate;
-    }
-
-    public String getPhone() {
-        return phone;
-    }
-
-    public String getAddress() {
-        return address;
-    }
-
-    // ===== Сеттеры =====
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public void setFullName(String fullName) {
-        this.fullName = fullName;
-    }
-
-    public void setBirthDate(LocalDate birthDate) {
-        this.birthDate = birthDate;
-    }
-
-    public void setPhone(String phone) {
-        this.phone = phone;
-    }
-
-    public void setAddress(String address) {
-        this.address = address;
-    }
-
-    // ===== toString =====
     @Override
     public String toString() {
         return "Patient{" +
