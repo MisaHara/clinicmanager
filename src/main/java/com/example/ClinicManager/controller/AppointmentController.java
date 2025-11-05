@@ -1,56 +1,98 @@
 package com.example.ClinicManager.controller;
 
 import com.example.ClinicManager.model.Appointment;
-import com.example.ClinicManager.service.AppointmentService;
+import com.example.ClinicManager.model.Doctor;
+import com.example.ClinicManager.model.Patient;
+import com.example.ClinicManager.model.User;
+import com.example.ClinicManager.repository.AppointmentRepository;
+import com.example.ClinicManager.repository.DoctorRepository;
+import com.example.ClinicManager.repository.PatientRepository;
+import com.example.ClinicManager.service.UserService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
-@RequestMapping("/appointments")
+@RequestMapping("/api/appointments")
 @RequiredArgsConstructor
 public class AppointmentController {
 
-    @Autowired
-    private AppointmentService appointmentService;
+    private final AppointmentRepository appointmentRepository;
+    private final DoctorRepository doctorRepository;
+    private final PatientRepository patientRepository;
+    private final UserService userService;
 
-    @GetMapping
-    public List<Appointment> getAllAppointments() {
-        return appointmentService.getAllAppointments();
+    // DTO для записи
+    public static class BookRequest {
+        public Long doctorId;
+        public String dateTime; // ISO string expected
     }
 
-    @GetMapping("/{id}")
-    public Appointment getAppointmentById(@PathVariable Long id) {
-        return appointmentService.getAppointmentById(id)
-                .orElseThrow(() -> new RuntimeException("Приём не найден"));
+    @GetMapping("/doctors")
+    public List<Doctor> getAllDoctors() {
+        return doctorRepository.findAll();
     }
 
-    @PostMapping
-    public Appointment createAppointment(@RequestBody Appointment appointment) {
-        return appointmentService.saveAppointment(appointment);
+    // Записаться к доктору — patient берём из текущего пользователя
+    @PostMapping("/book")
+    public ResponseEntity<?> bookAppointment(@RequestBody BookRequest req) {
+        // 1) парсим дату
+        LocalDateTime appointmentDate;
+        try {
+            appointmentDate = LocalDateTime.parse(req.dateTime);
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().body("Неверный формат dateTime. Ожидается ISO: yyyy-MM-ddTHH:mm[:ss]");
+        }
+
+        // 2) найдём доктора
+        Doctor doctor = doctorRepository.findById(req.doctorId)
+                .orElseThrow(() -> new RuntimeException("Доктор не найден"));
+
+        // 3) найдём текущего пользователя из контекста (JWT)
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (!(principal instanceof User)) {
+            return ResponseEntity.status(401).body("Не авторизован");
+        }
+        User currentUser = (User) principal;
+
+        // 4) найдём пациента, соответствующий текущему юзеру
+        // (предполагаем, что Patient.user ссылается на User)
+        Patient patient = patientRepository.findByUserId(currentUser.getId())
+                .orElseThrow(() -> new RuntimeException("Профиль пациента не найден для текущего пользователя"));
+
+        // 5) проверка занятости — точная (и защита на уровне БД)
+        if (appointmentRepository.findByDoctorIdAndAppointmentDate(doctor.getId(), appointmentDate).isPresent()) {
+            return ResponseEntity.badRequest().body("Эта дата уже занята");
+        }
+
+        Appointment appointment = new Appointment();
+        appointment.setDoctor(doctor);
+        appointment.setPatient(patient);
+        appointment.setAppointmentDate(appointmentDate);
+        appointment.setConfirmed(false);
+
+        try {
+            appointmentRepository.save(appointment);
+        } catch (DataIntegrityViolationException e) {
+            // гонка — другой запрос успел записаться -> сообщаем занято
+            return ResponseEntity.badRequest().body("Эта дата уже занята (конфликт сохранения).");
+        }
+
+        return ResponseEntity.ok("Запись успешно создана");
     }
 
-    @PutMapping("/{id}")
-    public Appointment updateAppointment(@PathVariable Long id, @RequestBody Appointment updated) {
-        return appointmentService.updateAppointment(id, updated);
-    }
-
-    @DeleteMapping("/{id}")
-    public void deleteAppointment(@PathVariable Long id) {
-        appointmentService.deleteAppointment(id);
-    }
-
-    // 🔹 фильтрация
     @GetMapping("/doctor/{doctorId}")
-    public List<Appointment> getAppointmentsByDoctor(@PathVariable Long doctorId) {
-        return appointmentService.getAppointmentsByDoctor(doctorId);
+    public List<Appointment> getAppointmentsForDoctor(@PathVariable Long doctorId) {
+        return appointmentRepository.findByDoctorId(doctorId);
     }
 
-    @GetMapping("/date/{date}")
-    public List<Appointment> getAppointmentsByDate(@PathVariable LocalDate date) {
-        return appointmentService.getAppointmentsByDate(date);
+    @GetMapping("/patient/{patientId}")
+    public List<Appointment> getAppointmentsForPatient(@PathVariable Long patientId) {
+        return appointmentRepository.findByPatientId(patientId);
     }
 }

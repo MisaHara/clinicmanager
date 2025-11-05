@@ -22,6 +22,7 @@ function Register() {
     try {
       const response = await axios.post("http://localhost:8080/api/auth/register", formData);
       localStorage.setItem("token", response.data.token);
+      localStorage.setItem("user", JSON.stringify(response.data.user));
       setMessage("Регистрация прошла успешно!");
     } catch (err) {
       console.error(err);
@@ -57,7 +58,7 @@ function Register() {
         <input
           type="text"
           name="phone"
-          placeholder="Номер телефона"
+          placeholder="Телефон"
           value={formData.phone}
           onChange={handleChange}
           required

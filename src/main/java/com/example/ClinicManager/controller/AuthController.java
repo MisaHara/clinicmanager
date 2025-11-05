@@ -63,7 +63,8 @@ public class AuthController {
         }
 
         String jwtToken = jwtService.generateToken(savedUser);
-        return new AuthenticationResponse(jwtToken);
+        // добавляем user, потому что конструктор требует два аргумента
+        return new AuthenticationResponse(jwtToken, savedUser);
     }
 
     @PostMapping("/login")
@@ -82,6 +83,8 @@ public class AuthController {
         User user = userService.findByUsername(request.getUsername());
         System.out.println("LOGIN SUCCESS: " + user.getUsername());
         String jwtToken = jwtService.generateToken(user);
-        return new AuthenticationResponse(jwtToken);
+
+        // Теперь возвращаем и токен, и пользователя
+        return new AuthenticationResponse(jwtToken, user);
     }
 }
