@@ -3,19 +3,18 @@ import api from "../services/api";
 
 function AddPatientForm({ onAdd }) {
   const [fullName, setFullName] = useState("");
-  const [dateOfBirth, setDateOfBirth] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
+  const [birthDate, setBirthDate] = useState("");
+  const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
-      // Поля должны совпадать с колонками в БД
       const newPatient = {
-        full_name: fullName,
-        date_of_birth: dateOfBirth,
-        phone_number: phoneNumber,
+        fullName,
+        birthDate,
+        phone,
         address,
       };
 
@@ -24,8 +23,8 @@ function AddPatientForm({ onAdd }) {
 
       // Очистка формы
       setFullName("");
-      setDateOfBirth("");
-      setPhoneNumber("");
+      setBirthDate("");
+      setPhone("");
       setAddress("");
     } catch (err) {
       console.error("Ошибка при добавлении пациента:", err);
@@ -43,15 +42,15 @@ function AddPatientForm({ onAdd }) {
       />
       <input
         type="date"
-        value={dateOfBirth}
-        onChange={(e) => setDateOfBirth(e.target.value)}
+        value={birthDate}
+        onChange={(e) => setBirthDate(e.target.value)}
         required
       />
       <input
         type="text"
         placeholder="Телефон"
-        value={phoneNumber}
-        onChange={(e) => setPhoneNumber(e.target.value)}
+        value={phone}
+        onChange={(e) => setPhone(e.target.value)}
         required
       />
       <input
